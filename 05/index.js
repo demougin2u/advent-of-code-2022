@@ -47,6 +47,17 @@ console.log(partOne(stacks, moves));
 /** PART II */
 console.log('---------- PART II ----------');
 
-const partTwo = (stacks, moves) => '';
+const partTwo = (originalStacks, moves) => {
+    let stacks = JSON.parse(JSON.stringify(originalStacks));
+    moves.forEach(move => {
+        const buffer = [];
+        for (let i = 0; i < move.numberOfItems; i++) {
+            buffer.push(stacks[move.from].pop())
+        }
+        stacks[move.to].push(...buffer.reverse())
+    });
+
+    return stacks.reduce((result, stack) => `${result}${stack.pop()}`, '');
+};
 
 console.log(partTwo(stacks, moves));
