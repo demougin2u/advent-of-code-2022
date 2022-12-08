@@ -33,5 +33,48 @@ console.log(partOne(trees));
 
 /** PART II */
 console.log('---------- PART II ----------');
-const partTwo = () => '';
-console.log(partTwo());
+
+const getDistance = (trees, treeHeight, deltaX, deltaY, x, y) => {
+    const newX = x + deltaX;
+    const newY = y + deltaY;
+    if (isOnEdge(newX, newY) || trees[newX][newY] >= treeHeight) {
+        return 1;
+    }
+
+    return 1 + getDistance(trees, treeHeight, deltaX, deltaY, newX, newY)
+}
+
+const calcScenicScore = (trees, [x, y]) => {
+    const treeHeight = trees[x][y];
+    return [[-1, 0], [1, 0], [0, -1], [0, 1]].reduce((scenicScore, [deltaX, deltaY]) => {
+        return getDistance(trees, treeHeight, deltaX, deltaY, x, y) * scenicScore;
+    }, 1);
+}
+
+const partTwo = (trees) => {
+    const tallestTree = [];
+
+    for (let y = 1; y < height - 1; y++) {
+        let buffer = [];
+        let maxHeight = 0;
+        for (let x = 1; x < height - 1; x++) {
+            let height = trees[x][y];
+            if (height > maxHeight) {
+                maxHeight = height;
+                buffer = [[x, y]];
+                continue;
+            }
+
+            if (height === maxHeight) {
+                buffer.push([x, y]);
+            }
+        }
+        tallestTree.push(...buffer);
+    }
+
+    return tallestTree.reduce((maxScenicScore, coordinates) => {
+        const scenicScore = calcScenicScore(trees, coordinates);
+        return maxScenicScore < scenicScore ? scenicScore : maxScenicScore;
+    }, 0);
+};
+console.log(partTwo(trees));
