@@ -20,4 +20,4 @@ day7: ## Run Day7
 day8: ## Run Day8
 	node 08/index.js
 day9: ## Run Day9
-	node 09/index.js
+	dart 09/index.dart
