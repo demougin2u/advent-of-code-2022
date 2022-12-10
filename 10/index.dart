@@ -6,9 +6,9 @@ void main(List<String> args) {
   List<Command> commands = inputFile.readAsStringSync().split('\n').map((line) => Command.fromString(line)).toList();
 
   print('---------- PART I ----------');
-  print(partOne(commands));
+  print(partOne(commands.map((command) => command.clone()).toList()));
   print('---------- PART II ----------');
-  print(partTwo(commands));
+  print(partTwo(commands.map((command) => command.clone()).toList()));
 }
 
 int partOne(List<Command> commands) {
@@ -32,11 +32,38 @@ int partOne(List<Command> commands) {
   return res;
 }
 
-int partTwo(List<Command> commands) {
-  return 0;
+String partTwo(List<Command> commands) {
+  final List<int> cycles = [40, 80, 120, 160, 200, 240];
+  int x = 1;
+  List<String> res = [];
+  List<String> currentLine = [];
+  Command? currentCommand = commands.first;
+  int commandIndex = 1;
+  for (int cycle = 1; cycle <= cycles.last; cycle++) {
+    final int currentCRTIndex = currentLine.length;
+    if ((x - currentCRTIndex).abs() <= 1) {
+      currentLine.add('X');
+    } else {
+      currentLine.add('.');
+    }
+
+    if (cycles.contains(cycle)) {
+      res.add(currentLine.join(''));
+      currentLine = [];
+    }
+
+    if (currentCommand == null) continue;
+
+    x = currentCommand.executeCommand(x);
+    if (currentCommand.isFinished) {
+      currentCommand = commands.length > commandIndex ? commands.elementAt(commandIndex) : null;
+      commandIndex++;
+    }
+  }
+  return res.join('\n');
 }
 
-abstract class Command {
+class Command {
   int _duration;
   final int _value;
 
@@ -61,8 +88,11 @@ abstract class Command {
     if (!isFinished) {
       return x;
     }
-
     return x + _value;
+  }
+
+  Command clone() {
+    return Command(_duration, _value);
   }
 }
 
