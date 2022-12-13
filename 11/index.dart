@@ -2,7 +2,12 @@ import 'dart:io';
 
 void main(List<String> args) {
   File inputFile = File('./11/input.txt');
-  List<Monkey> monkeys = inputFile.readAsStringSync().split('\n\n').map((e) => Monkey.fromString(e)).toList();
+  int modulo = 1;
+  List<Monkey> monkeys = inputFile.readAsStringSync().split('\n\n').map((e) {
+    Monkey m = Monkey.fromString(e);
+    modulo *= m.divisibleBy;
+    return m;
+  }).toList();
 
   print('---------- PART I ----------');
   print(
@@ -11,13 +16,13 @@ void main(List<String> args) {
     ),
   );
   print('---------- PART II ----------');
-  print(partTwo(monkeys));
+  print(partTwo(monkeys.map((e) => e.clone()).toList(), modulo));
 }
 
-int partOne(List<Monkey> monkeys) {
-  for (int i = 0; i < 20; i++) {
+int run(List<Monkey> monkeys, int rounds, int Function(int) manualWorryInfluence) {
+  for (int i = 0; i < rounds; i++) {
     monkeys.forEach((monkey) {
-      monkey.executeRound(monkeys);
+      monkey.executeRound(monkeys, manualWorryInfluence);
     });
   }
 
@@ -38,8 +43,12 @@ int partOne(List<Monkey> monkeys) {
   return max1 * max2;
 }
 
-int partTwo(List<Monkey> monkeys) {
-  return monkeys.length;
+int partOne(List<Monkey> monkeys) {
+  return run(monkeys, 20, (worryLevel) => (worryLevel / 3).floor());
+}
+
+int partTwo(List<Monkey> monkeys, int modulo) {
+  return run(monkeys, 10000, (worryLevel) => (worryLevel % modulo));
 }
 
 class Monkey {
@@ -47,14 +56,15 @@ class Monkey {
   final int id;
   final int Function(int) getWorryLevel;
   final int Function(int) getMonkeyId;
+  final int divisibleBy;
   int _numberOfInspections;
 
-  Monkey._(this.items, this.id, this.getWorryLevel, this.getMonkeyId) : _numberOfInspections = 0;
+  Monkey._(this.items, this.id, this.getWorryLevel, this.getMonkeyId, this.divisibleBy) : _numberOfInspections = 0;
 
-  void executeRound(List<Monkey> monkeys) {
+  void executeRound(List<Monkey> monkeys, int Function(int) manualWorryInfluence) {
     items.forEach((itemWorryLevel) {
       _numberOfInspections++;
-      int newWorryLevel = getWorryLevel(itemWorryLevel);
+      int newWorryLevel = manualWorryInfluence(getWorryLevel(itemWorryLevel));
       int giveToMonkeyId = getMonkeyId(newWorryLevel);
       monkeys[giveToMonkeyId].items.add(newWorryLevel);
     });
@@ -69,7 +79,7 @@ class Monkey {
   }
 
   Monkey clone() {
-    return Monkey._(items, id, getWorryLevel, getMonkeyId);
+    return Monkey._([...items], id, getWorryLevel, getMonkeyId, divisibleBy);
   }
 
   factory Monkey.fromString(String input) {
@@ -77,9 +87,11 @@ class Monkey {
     int id = _getIdFromStringLine(inputLines[0]);
     List<int> items = _getItemsFromStringLine(inputLines[1]);
     int Function(int) operation = _getWorryLevelFunctionFromStringLine(inputLines[2]);
-    int Function(int) getMonkeyId = _getMonkeyIdFunctionFromStringLines(inputLines.getRange(3, 6).join(' '));
+    int divisibleBy = _getDivisibleBy(inputLines[3]);
+    int Function(int) getMonkeyId =
+        _getMonkeyIdFunctionFromStringLines(inputLines.getRange(4, 6).join(' '), divisibleBy);
 
-    return Monkey._(items, id, operation, getMonkeyId);
+    return Monkey._(items, id, operation, getMonkeyId, divisibleBy);
   }
 
   static int _getIdFromStringLine(String inputLine) {
@@ -121,22 +133,28 @@ class Monkey {
           throw Exception('sign not found $sign');
       }
 
-      return (res / 3).floor();
+      return res;
     };
   }
 
-  static int Function(int) _getMonkeyIdFunctionFromStringLines(String input) {
-    RegExpMatch? match =
-        RegExp(r'divisible by (\d+).* If true: throw to monkey (\d+).* If false: throw to monkey (\d+)')
-            .firstMatch(input);
+  static int _getDivisibleBy(String input) {
+    RegExpMatch? match = RegExp(r'divisible by (\d+)').firstMatch(input);
     String? divisibleByString = match?.group(1);
-    String? caseTrueString = match?.group(2);
-    String? caseFalseString = match?.group(3);
-    if (divisibleByString == null || caseTrueString == null || caseFalseString == null) {
+    if (divisibleByString == null) {
+      throw Exception('monkey divisible by is not found in `$input`');
+    }
+
+    return int.parse(divisibleByString);
+  }
+
+  static int Function(int) _getMonkeyIdFunctionFromStringLines(String input, int divisibleBy) {
+    RegExpMatch? match = RegExp(r'If true: throw to monkey (\d+).* If false: throw to monkey (\d+)').firstMatch(input);
+    String? caseTrueString = match?.group(1);
+    String? caseFalseString = match?.group(2);
+    if (caseTrueString == null || caseFalseString == null) {
       throw Exception('monkey test is not found in `$input`');
     }
 
-    int divisibleBy = int.parse(divisibleByString);
     int caseTrue = int.parse(caseTrueString);
     int caseFalse = int.parse(caseFalseString);
 
